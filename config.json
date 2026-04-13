@@ -2,7 +2,8 @@
   "azure": {
     "connectionString": "",
     "containerName": "immich",
-    "accessTier": "Cold"
+    "accessTier": "Cold",
+    "costPerGBPerMonth": 0.0036
   },
   "sync": {
     "basePath": "/media/usbdrive/immich",
@@ -19,6 +20,10 @@
     ],
     "debounceMs": 2000,
     "concurrency": 3
+  },
+  "discord": {
+    "webhookUrl": "",
+    "notifyOnFailure": true
   },
   "server": {
     "port": 3420

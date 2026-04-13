@@ -131,6 +131,19 @@ export function stopUploader() {
   running = false;
 }
 
+export function pauseUploader() {
+  running = false;
+  log.info('Uploader paused');
+  bus.emit('stats:update');
+}
+
+export function resumeUploader() {
+  running = true;
+  log.info('Uploader resumed');
+  bus.emit('stats:update');
+  processQueue();
+}
+
 export function triggerQueue() {
   if (running && activeUploads < config.sync.concurrency) {
     processQueue();

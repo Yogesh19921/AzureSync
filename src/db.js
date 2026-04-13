@@ -154,6 +154,52 @@ function prepare() {
 
   stmts.getFailedFiles = db.prepare(`SELECT * FROM files WHERE status = 'failed' ORDER BY created_at DESC`);
 
+  stmts.getFileTypeBreakdown = db.prepare(`
+    SELECT
+      CASE
+        WHEN lower(rel_path) GLOB '*.[jJ][pP][gG]' OR lower(rel_path) GLOB '*.[jJ][pP][eE][gG]'
+          OR lower(rel_path) GLOB '*.[pP][nN][gG]' OR lower(rel_path) GLOB '*.[gG][iI][fF]'
+          OR lower(rel_path) GLOB '*.[wW][eE][bB][pP]' OR lower(rel_path) GLOB '*.[hH][eE][iI][cCfF]'
+          THEN 'images'
+        WHEN lower(rel_path) GLOB '*.[mM][pP]4' OR lower(rel_path) GLOB '*.[mM][oO][vV]'
+          OR lower(rel_path) GLOB '*.[aA][vV][iI]' OR lower(rel_path) GLOB '*.[mM][kK][vV]'
+          OR lower(rel_path) GLOB '*.[wW][eE][bB][mM]' OR lower(rel_path) GLOB '*.[3][gG][pP]'
+          THEN 'videos'
+        WHEN lower(rel_path) GLOB '*.[sS][qQ][lL].[gG][zZ]' OR lower(rel_path) GLOB '*.[sS][qQ][lL]'
+          THEN 'database'
+        ELSE 'other'
+      END as file_type,
+      COUNT(*) as count,
+      SUM(size) as total_size
+    FROM files
+    GROUP BY file_type
+  `);
+
+  stmts.getLargestFiles = db.prepare(`
+    SELECT * FROM files ORDER BY size DESC LIMIT @limit
+  `);
+
+  stmts.getDigest = db.prepare(`
+    SELECT
+      COUNT(*) FILTER (WHERE uploaded_at >= datetime('now', @since)) as uploaded_count,
+      COALESCE(SUM(size) FILTER (WHERE uploaded_at >= datetime('now', @since)), 0) as uploaded_size,
+      COUNT(*) FILTER (WHERE status = 'failed' AND created_at >= datetime('now', @since)) as failed_count
+    FROM files
+  `);
+
+  stmts.getLastSync = db.prepare(`
+    SELECT uploaded_at, rel_path FROM files WHERE status = 'uploaded' AND uploaded_at IS NOT NULL
+    ORDER BY uploaded_at DESC LIMIT 1
+  `);
+
+  stmts.getFailureTrend = db.prepare(`
+    SELECT
+      COUNT(*) FILTER (WHERE status = 'failed' AND created_at >= datetime('now', '-1 hours')) as last_hour,
+      COUNT(*) FILTER (WHERE status = 'failed' AND created_at >= datetime('now', '-24 hours')) as last_day,
+      COUNT(*) FILTER (WHERE status = 'failed') as total
+    FROM files
+  `);
+
   stmts.markUploadedBulk = db.prepare(`
     INSERT INTO files (rel_path, size, mtime_ms, blob_name, status, uploaded_at)
     VALUES (@relPath, @size, @mtimeMs, @blobName, 'uploaded', datetime('now'))
@@ -244,6 +290,26 @@ export function getDbSize() {
 
 export function getFailedFiles() {
   return stmts.getFailedFiles.all();
+}
+
+export function getFileTypeBreakdown() {
+  return stmts.getFileTypeBreakdown.all();
+}
+
+export function getLargestFiles(limit = 10) {
+  return stmts.getLargestFiles.all({ limit });
+}
+
+export function getDigest(since = '-1 days') {
+  return stmts.getDigest.get({ since });
+}
+
+export function getLastSync() {
+  return stmts.getLastSync.get() || null;
+}
+
+export function getFailureTrend() {
+  return stmts.getFailureTrend.get();
 }
 
 export function markUploadedBulk(files) {

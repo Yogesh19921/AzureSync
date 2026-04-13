@@ -12,4 +12,5 @@ if (process.env.AZURE_CONNECTION_STRING) {
   raw.azure.connectionString = process.env.AZURE_CONNECTION_STRING;
 }
 
-export const config = Object.freeze(raw);
+// Not frozen — config editor mutates at runtime
+export const config = raw;

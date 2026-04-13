@@ -4,6 +4,7 @@ import { initAzure, startUploader } from './uploader.js';
 import { reconcile } from './reconciler.js';
 import { startWatcher } from './watcher.js';
 import { startServer } from './server.js';
+import { initDiscord } from './discord.js';
 import { log } from './logger.js';
 
 async function main() {
@@ -19,6 +20,7 @@ async function main() {
   initDb();
   initStatements();
   initAzure();
+  initDiscord();
   logActivity('system', 'AzureSync daemon started');
 
   // Start HTTP + WebSocket server

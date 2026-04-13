@@ -739,6 +739,244 @@ body {
   white-space: nowrap;
 }
 
+/* Pause Button */
+.pause-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pause-btn:hover { background: var(--accent-dim); }
+.pause-btn.paused { border-color: var(--green); color: var(--green); }
+.pause-btn.paused:hover { background: var(--green-dim); }
+
+/* Last Sync */
+.last-sync {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.last-sync-label { color: var(--text-dim); }
+.last-sync-time { font-weight: 600; color: var(--green); }
+.last-sync-time.dim { color: var(--text-dim); }
+
+/* Failure Banner */
+.failure-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--red-dim);
+  border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.failure-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--red);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* Grid 3 */
+.grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* Digest */
+.digest-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  text-align: center;
+}
+
+.digest-item { display: flex; flex-direction: column; gap: 2px; }
+.digest-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.digest-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.digest-green { color: var(--green); }
+.digest-purple { color: var(--purple); }
+.digest-red { color: var(--red); }
+
+/* Cost Estimate */
+.cost-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  text-align: center;
+}
+
+.cost-item { display: flex; flex-direction: column; gap: 2px; }
+.cost-value { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cost-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.cost-accent { color: var(--accent); }
+.cost-dim { color: var(--text-dim); font-size: 14px; }
+
+/* Largest Files */
+.largest-list { display: flex; flex-direction: column; gap: 6px; }
+
+.largest-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.largest-rank {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.largest-info { flex: 1; min-width: 0; }
+
+.largest-path {
+  font-size: 12px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 3px;
+}
+
+.largest-bar-wrap {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.largest-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.largest-size {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* Config Editor */
+.config-panel { margin-bottom: 24px; }
+
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.config-section h3 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  margin-top: 16px;
+}
+
+.config-section h3:first-child { margin-top: 0; }
+
+.config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.config-field span {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.config-field input[type="text"],
+.config-field input[type="number"],
+.config-field textarea {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.config-field input:focus,
+.config-field textarea:focus {
+  border-color: var(--accent);
+}
+
+.config-field textarea {
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.config-checkbox {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.config-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.save-btn {
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  padding: 4px 14px;
+  border-radius: 4px;
+  border: none;
+  background: var(--accent);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.save-btn:hover:not(:disabled) { opacity: 0.85; }
+.save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -752,11 +990,19 @@ body {
 }
 
 /* Responsive */
+@media (max-width: 900px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .config-grid { grid-template-columns: 1fr; }
+  .cost-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 600px) {
   .app { padding: 12px; }
-  .header h1 { font-size: 20px; }
+  .header { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .header-right { flex-wrap: wrap; gap: 8px; }
   .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .stat-value { font-size: 20px; }
   .file-toolbar { flex-direction: column; }
   .progress-header { flex-direction: column; gap: 4px; align-items: flex-start; }
+  .digest-grid { grid-template-columns: 1fr; }
 }
