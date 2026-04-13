@@ -666,6 +666,13 @@ body {
   cursor: not-allowed;
 }
 
+/* Breakdown */
+.breakdown-total {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
 /* Chart Tooltip */
 .chart-tooltip {
   background: var(--surface);

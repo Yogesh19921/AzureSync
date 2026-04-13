@@ -13,7 +13,6 @@ const LABELS = {
 
 export default function StorageBreakdown() {
   const [data, setData] = useState([]);
-  const [mode, setMode] = useState('size'); // 'size' or 'count'
 
   useEffect(() => {
     fetch('/api/breakdown')
@@ -26,19 +25,38 @@ export default function StorageBreakdown() {
 
   const chartData = data.map(d => ({
     name: LABELS[d.category] || d.category,
-    value: mode === 'size' ? d.total_size : d.count,
+    value: d.total_size,
     rawSize: d.total_size,
     rawCount: d.count,
   }));
 
+  const totalSize = data.reduce((a, d) => a + (d.total_size || 0), 0);
+  const totalCount = data.reduce((a, d) => a + d.count, 0);
+
   const CustomTooltip = ({ active, payload }) => {
     if (!active || !payload?.[0]) return null;
     const d = payload[0].payload;
+    const pct = totalSize > 0 ? ((d.rawSize / totalSize) * 100).toFixed(1) : 0;
     return (
       <div className="chart-tooltip">
         <div className="chart-tooltip-label">{d.name}</div>
-        <div>{formatSize(d.rawSize)} ({d.rawCount} files)</div>
+        <div>{formatSize(d.rawSize)} ({pct}%)</div>
+        <div>{d.rawCount.toLocaleString()} files</div>
       </div>
+    );
+  };
+
+  const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, rawSize, rawCount }) => {
+    const RADIAN = Math.PI / 180;
+    const radius = outerRadius + 24;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    // Skip labels for tiny slices
+    if (rawSize / totalSize < 0.05) return null;
+    return (
+      <text x={x} y={y} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" style={{ fontSize: 11, fill: 'var(--text-dim)' }}>
+        {formatSize(rawSize)} / {rawCount}
+      </text>
     );
   };
 
@@ -46,21 +64,20 @@ export default function StorageBreakdown() {
     <div className="panel">
       <div className="panel-header">
         <h2>Storage Breakdown</h2>
-        <div className="toggle-group">
-          <button className={mode === 'size' ? 'active' : ''} onClick={() => setMode('size')}>Size</button>
-          <button className={mode === 'count' ? 'active' : ''} onClick={() => setMode('count')}>Count</button>
-        </div>
+        <span className="breakdown-total">{formatSize(totalSize)} — {totalCount.toLocaleString()} files</span>
       </div>
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie
             data={chartData}
             cx="50%"
             cy="50%"
-            innerRadius={60}
-            outerRadius={100}
+            innerRadius={55}
+            outerRadius={95}
             dataKey="value"
             stroke="none"
+            label={renderLabel}
+            labelLine={false}
           >
             {chartData.map((_, i) => (
               <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -68,7 +85,14 @@ export default function StorageBreakdown() {
           </Pie>
           <Tooltip content={<CustomTooltip />} />
           <Legend
-            formatter={(value) => <span style={{ color: 'var(--text)', fontSize: 12 }}>{value}</span>}
+            formatter={(value, entry) => {
+              const d = entry.payload;
+              return (
+                <span style={{ color: 'var(--text)', fontSize: 12 }}>
+                  {value} <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>({formatSize(d.rawSize)}, {d.rawCount})</span>
+                </span>
+              );
+            }}
           />
         </PieChart>
       </ResponsiveContainer>
