@@ -69,11 +69,17 @@ async function uploadFile(file) {
       }
     );
 
+    // Verify blob exists w/ correct size
+    const props = await blobClient.getProperties();
+    if (props.contentLength !== st.size) {
+      throw new Error(`Size mismatch: local=${st.size} azure=${props.contentLength}`);
+    }
+
     const duration = Date.now() - start;
     recordSpeed(st.size, duration);
     markUploaded(file.rel_path);
-    logActivity('upload', `Uploaded ${file.rel_path} (${formatSize(st.size)}) in ${duration}ms`, file.rel_path);
-    bus.emit('file:uploaded', { relPath: file.rel_path, size: st.size, duration, speed: getUploadSpeed() });
+    logActivity('upload', `Uploaded ${file.rel_path} (${formatSize(st.size)}) in ${duration}ms [verified]`, file.rel_path);
+    bus.emit('file:uploaded', { relPath: file.rel_path, size: st.size, duration, speed: getUploadSpeed(), verified: true });
     bus.emit('stats:update');
     log.info('Uploaded', { relPath: file.rel_path, size: st.size, duration });
   } catch (err) {
