@@ -40,6 +40,7 @@ export default function SystemHealth({ onReconcile, onToast }) {
         <div className="health-item"><span className="health-label">Uptime</span><span className="health-value">{formatDuration(health.uptime)}</span></div>
         <div className="health-item"><span className="health-label">Memory</span><span className="health-value">{health.memoryMB} MB</span></div>
         <div className="health-item"><span className="health-label">DB Size</span><span className="health-value">{health.dbSizeMB} MB</span></div>
+        <div className="health-item"><span className="health-label">Azure</span><span className={`health-value ${health.azure?.connected ? 'status-running' : 'status-error'}`} title={health.azure?.error || ''}>{health.azure?.connected ? 'Connected' : 'Disconnected'}</span></div>
         <div className="health-item"><span className="health-label">Disk</span><span className={`health-value ${health.disk?.accessible ? 'status-running' : 'status-error'}`}>{health.disk?.accessible ? 'Accessible' : 'Unavailable'}</span></div>
         <div className="health-item"><span className="health-label">Workers</span><span className="health-value">{health.uploader?.activeUploads} / {health.config?.concurrency} active</span></div>
         <div className="health-item"><span className="health-label">Speed</span><span className="health-value">{formatSpeed(health.uploader?.speed?.bytesPerSec)}</span></div>

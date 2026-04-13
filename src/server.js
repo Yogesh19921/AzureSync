@@ -12,7 +12,7 @@ import {
   retryFailed, retryOne, logActivity, getFailedFiles,
   getFileTypeBreakdown, getLargestFiles, getDigest, getLastSync, getFailureTrend,
 } from './db.js';
-import { getUploaderStatus, triggerQueue, pauseUploader, resumeUploader } from './uploader.js';
+import { getUploaderStatus, triggerQueue, pauseUploader, resumeUploader, getContainerClient } from './uploader.js';
 import { updateWebhookUrl } from './discord.js';
 import { reconcile } from './reconciler.js';
 import { scanMissing, restoreAll, restoreOne, getScanResult, isScanning, isRestoring, getRestoreProgress } from './restorer.js';
@@ -97,12 +97,22 @@ export function startServer() {
     try { await stat(config.sync.basePath); disk = { path: config.sync.basePath, accessible: true }; }
     catch { disk = { path: config.sync.basePath, accessible: false }; }
 
+    let azure = { connected: false, error: null };
+    try {
+      const container = getContainerClient();
+      await container.getProperties();
+      azure.connected = true;
+    } catch (err) {
+      azure.error = err.message;
+    }
+
     res.json({
       status: 'running',
       uptime: Math.floor(process.uptime()),
       memoryMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
       dbSizeMB: (getDbSize() / 1024 / 1024).toFixed(2),
       disk,
+      azure,
       uploader: getUploaderStatus(),
       config: {
         basePath: config.sync.basePath,
