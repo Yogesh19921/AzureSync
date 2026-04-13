@@ -7,7 +7,12 @@
   },
   "sync": {
     "basePath": "/media/usbdrive/immich",
-    "watchDirs": ["library", "upload", "encoded-video", "backups"],
+    "watchDirs": [
+      "library",
+      "upload",
+      "encoded-video",
+      "backups"
+    ],
     "skipPatterns": [
       ".DS_Store",
       ".fuse_hidden*",
@@ -22,7 +27,7 @@
     "concurrency": 3
   },
   "discord": {
-    "webhookUrl": "",
+    "webhookUrl": "https://discord.com/api/webhooks/1476042293625622763/kecEctjXh5jI39mrmL5T0DPT-tsXHoOi9s4EWIewbz0e2z1S17mKB4B0OPjG8SKUbqOo",
     "notifyOnFailure": true
   },
   "server": {

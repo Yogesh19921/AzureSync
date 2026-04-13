@@ -16,6 +16,7 @@ import ActivityLog from './components/ActivityLog.jsx';
 import FileList from './components/FileList.jsx';
 import SystemHealth from './components/SystemHealth.jsx';
 import ConfigEditor from './components/ConfigEditor.jsx';
+import RestorePanel from './components/RestorePanel.jsx';
 import ThemeToggle from './components/ThemeToggle.jsx';
 import Toasts from './components/Toasts.jsx';
 import { formatSize } from './utils.js';
@@ -128,6 +129,7 @@ export default function App() {
         currentFilter={filter} currentSearch={search}
       />
 
+      <RestorePanel onToast={addToast} wsEvents={events} />
       <SystemHealth onReconcile={() => {}} onToast={addToast} />
       <ConfigEditor onToast={addToast} />
     </div>

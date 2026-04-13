@@ -15,6 +15,7 @@ import {
 import { getUploaderStatus, triggerQueue, pauseUploader, resumeUploader } from './uploader.js';
 import { updateWebhookUrl } from './discord.js';
 import { reconcile } from './reconciler.js';
+import { scanMissing, restoreAll, restoreOne, getScanResult, isScanning, isRestoring, getRestoreProgress } from './restorer.js';
 import { bus } from './events.js';
 import { log } from './logger.js';
 
@@ -206,6 +207,50 @@ export function startServer() {
 
   app.get('/api/failed', (_req, res) => res.json(getFailedFiles()));
 
+  // --- Restore (Azure → local) ---
+
+  app.post('/api/restore/scan', async (_req, res) => {
+    if (isScanning()) return res.status(409).json({ error: 'Scan already in progress' });
+    res.json({ started: true });
+    try { await scanMissing(); } catch (err) { log.error('Scan failed', { error: err.message }); }
+  });
+
+  app.get('/api/restore/status', (_req, res) => {
+    const scan = getScanResult();
+    res.json({
+      scanning: isScanning(),
+      restoring: isRestoring(),
+      progress: getRestoreProgress(),
+      scan: scan ? { scannedAt: scan.scannedAt, totalAzure: scan.totalAzure, totalLocal: scan.totalLocal, missingCount: scan.missingCount, missingSize: scan.missingSize } : null,
+    });
+  });
+
+  app.get('/api/restore/files', (req, res) => {
+    const scan = getScanResult();
+    if (!scan) return res.json({ files: [], total: 0 });
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const offset = parseInt(req.query.offset) || 0;
+    res.json({ files: scan.files.slice(offset, offset + limit), total: scan.missingCount });
+  });
+
+  app.post('/api/restore/all', async (_req, res) => {
+    if (isRestoring()) return res.status(409).json({ error: 'Restore already in progress' });
+    if (!getScanResult()) return res.status(400).json({ error: 'Run scan first' });
+    logActivity('system', `Restore started: ${getScanResult().missingCount} files`);
+    res.json({ started: true });
+    try {
+      const result = await restoreAll();
+      logActivity('system', `Restore complete: ${result.done} downloaded, ${result.failed} failed`);
+    } catch (err) { log.error('Restore failed', { error: err.message }); }
+  });
+
+  app.post('/api/restore/file', async (req, res) => {
+    const { blobName } = req.body;
+    if (!blobName) return res.status(400).json({ error: 'blobName required' });
+    const result = await restoreOne(blobName);
+    res.json(result);
+  });
+
   // SPA fallback — LAST
   app.get('*', (_req, res) => {
     if (existsSync(resolve(frontendDist, 'index.html'))) res.sendFile(resolve(frontendDist, 'index.html'));
@@ -232,6 +277,11 @@ export function startServer() {
   bus.on('file:failed', (data) => broadcast('file:failed', data));
   bus.on('reconcile:start', () => broadcast('reconcile:start', {}));
   bus.on('reconcile:done', (data) => broadcast('reconcile:done', data));
+  bus.on('restore:scan-start', () => broadcast('restore:scan-start', {}));
+  bus.on('restore:scan-done', (data) => broadcast('restore:scan-done', data));
+  bus.on('restore:start', (data) => broadcast('restore:start', data));
+  bus.on('restore:progress', (data) => broadcast('restore:progress', data));
+  bus.on('restore:done', (data) => broadcast('restore:done', data));
   bus.on('stats:update', () => broadcast('stats', buildStats()));
 
   server.listen(config.server.port, () => {

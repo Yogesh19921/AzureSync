@@ -6,9 +6,9 @@ services:
     ports:
       - "3420:3420"
     volumes:
-      - ./config.json:/app/config.json:ro
+      - ./config.json:/app/config.json
       - ./data:/app/data
-      - /media/usbdrive/immich:/media/usbdrive/immich:ro
+      - /media/usbdrive/immich:/media/usbdrive/immich
     environment:
       - AZURE_CONNECTION_STRING=${AZURE_CONNECTION_STRING}
       - LOG_LEVEL=info
