@@ -1,0 +1,29 @@
+{
+  "azure": {
+    "connectionString": "",
+    "containerName": "immich",
+    "accessTier": "Cold"
+  },
+  "sync": {
+    "basePath": "/media/usbdrive/immich",
+    "watchDirs": ["library", "upload", "encoded-video", "backups"],
+    "skipPatterns": [
+      ".DS_Store",
+      ".fuse_hidden*",
+      ".azDownload-*",
+      ".immich",
+      "*.tmp",
+      "thumbs/**",
+      "profile/**",
+      "immich/**"
+    ],
+    "debounceMs": 2000,
+    "concurrency": 3
+  },
+  "server": {
+    "port": 3420
+  },
+  "db": {
+    "path": "./data/sync.db"
+  }
+}

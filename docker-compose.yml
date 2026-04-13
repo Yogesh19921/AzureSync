@@ -1,0 +1,14 @@
+services:
+  azure-sync:
+    build: .
+    container_name: azure-sync
+    restart: unless-stopped
+    ports:
+      - "3420:3420"
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./data:/app/data
+      - /media/usbdrive/immich:/media/usbdrive/immich:ro
+    environment:
+      - AZURE_CONNECTION_STRING=${AZURE_CONNECTION_STRING}
+      - LOG_LEVEL=info

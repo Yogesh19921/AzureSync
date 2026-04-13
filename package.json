@@ -1,0 +1,20 @@
+{
+  "name": "azure-sync",
+  "version": "1.0.0",
+  "description": "Efficient file sync daemon: immich directory → Azure Blob Storage (cold tier)",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "build:frontend": "cd frontend && npm run build",
+    "postinstall": "[ -d frontend ] && cd frontend && npm install || true"
+  },
+  "dependencies": {
+    "@azure/storage-blob": "^12.26.0",
+    "better-sqlite3": "^11.7.0",
+    "chokidar": "^4.0.0",
+    "express": "^4.21.0",
+    "ws": "^8.18.0"
+  }
+}

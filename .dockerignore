@@ -1,8 +1,9 @@
 node_modules/
-data/
-frontend/dist/
 frontend/node_modules/
+frontend/dist/
+data/
 .env
 *.db
 *.db-wal
 *.db-shm
+.git
