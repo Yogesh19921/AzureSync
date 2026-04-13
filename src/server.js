@@ -219,10 +219,12 @@ export function startServer() {
 
   // --- Restore (Azure → local) ---
 
-  app.post('/api/restore/scan', async (_req, res) => {
+  app.post('/api/restore/scan', async (req, res) => {
     if (isScanning()) return res.status(409).json({ error: 'Scan already in progress' });
-    res.json({ started: true });
-    try { await scanMissing(); } catch (err) { log.error('Scan failed', { error: err.message }); }
+    const prefixes = req.body?.prefixes || ['upload'];
+    const immichOnly = req.body?.immichOnly !== false;
+    res.json({ started: true, prefixes, immichOnly });
+    try { await scanMissing({ prefixes, immichOnly }); } catch (err) { log.error('Scan failed', { error: err.message }); }
   });
 
   app.get('/api/restore/status', (_req, res) => {
@@ -231,7 +233,12 @@ export function startServer() {
       scanning: isScanning(),
       restoring: isRestoring(),
       progress: getRestoreProgress(),
-      scan: scan ? { scannedAt: scan.scannedAt, totalAzure: scan.totalAzure, totalLocal: scan.totalLocal, missingCount: scan.missingCount, missingSize: scan.missingSize } : null,
+      scan: scan ? {
+        scannedAt: scan.scannedAt, prefixes: scan.prefixes, immichCrossRef: scan.immichCrossRef,
+        totalAzure: scan.totalAzure, totalLocal: scan.totalLocal,
+        skippedNotInImmich: scan.skippedNotInImmich,
+        missingCount: scan.missingCount, missingSize: scan.missingSize,
+      } : null,
     });
   });
 

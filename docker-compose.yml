@@ -9,6 +9,7 @@ services:
       - ./config.json:/app/config.json
       - ./data:/app/data
       - /media/usbdrive/immich:/media/usbdrive/immich
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - AZURE_CONNECTION_STRING=${AZURE_CONNECTION_STRING}
       - LOG_LEVEL=info

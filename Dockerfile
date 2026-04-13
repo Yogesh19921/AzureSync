@@ -8,8 +8,8 @@ RUN npm run build
 FROM node:22-alpine
 WORKDIR /app
 
-# better-sqlite3 needs build tools
-RUN apk add --no-cache python3 make g++
+# better-sqlite3 needs build tools, docker-cli for Immich DB cross-ref
+RUN apk add --no-cache python3 make g++ docker-cli
 
 COPY package*.json ./
 RUN npm ci --omit=dev && apk del python3 make g++

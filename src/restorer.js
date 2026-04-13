@@ -1,6 +1,7 @@
 import { join, dirname } from 'path';
 import { existsSync, createWriteStream } from 'fs';
 import { mkdir } from 'fs/promises';
+import { execSync } from 'child_process';
 import { config } from './config.js';
 import { getContainerClient } from './uploader.js';
 import { bus } from './events.js';
@@ -16,10 +17,36 @@ export function isScanning() { return scanning; }
 export function isRestoring() { return restoring; }
 export function getRestoreProgress() { return { ...restoreProgress }; }
 
-export async function scanMissing() {
+// Get set of active asset paths from Immich DB (container path → relative blob path)
+function getImmichActivePaths() {
+  try {
+    const raw = execSync(
+      `docker exec immich_postgres psql -U postgres -d immich -t -A -c 'SELECT "originalPath" FROM asset WHERE status = $$active$$;'`,
+      { timeout: 30000, encoding: 'utf-8' }
+    );
+    const paths = new Set();
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      // Convert /usr/src/app/upload/upload/... → upload/...
+      const rel = trimmed.replace('/usr/src/app/upload/', '');
+      paths.add(rel);
+    }
+    log.info('Loaded Immich active asset paths', { count: paths.size });
+    return paths;
+  } catch (err) {
+    log.warn('Could not query Immich DB — falling back to full scan', { error: err.message });
+    return null;
+  }
+}
+
+export async function scanMissing(options = {}) {
   if (scanning) throw new Error('Scan already in progress');
   scanning = true;
   bus.emit('restore:scan-start');
+
+  const prefixes = options.prefixes || ['upload'];
+  const immichOnly = options.immichOnly !== false; // default true
 
   try {
     const container = getContainerClient();
@@ -27,16 +54,16 @@ export async function scanMissing() {
     let totalAzure = 0;
     let totalLocal = 0;
     let totalMissingSize = 0;
+    let skippedNotInImmich = 0;
 
-    for (const dir of config.sync.watchDirs) {
+    // Try to get Immich DB paths for cross-referencing
+    const immichPaths = immichOnly ? getImmichActivePaths() : null;
+
+    for (const dir of prefixes) {
       log.info('Scanning Azure prefix for missing files', { prefix: dir });
 
       for await (const blob of container.listBlobsFlat({ prefix: `${dir}/` })) {
-        // Skip immich/ prefix — known blobfuse artifact duplicates
         if (blob.name.startsWith('immich/')) continue;
-
-        totalAzure++;
-        const localPath = join(config.sync.basePath, blob.name);
 
         // Skip junk files
         const name = blob.name.split('/').pop();
@@ -44,6 +71,15 @@ export async function scanMissing() {
           continue;
         }
 
+        totalAzure++;
+
+        // If Immich cross-ref available, skip files not in Immich DB
+        if (immichPaths && !immichPaths.has(blob.name)) {
+          skippedNotInImmich++;
+          continue;
+        }
+
+        const localPath = join(config.sync.basePath, blob.name);
         if (existsSync(localPath)) {
           totalLocal++;
         } else {
@@ -60,14 +96,21 @@ export async function scanMissing() {
 
     scanResult = {
       scannedAt: new Date().toISOString(),
+      prefixes,
+      immichCrossRef: !!immichPaths,
       totalAzure,
       totalLocal,
+      skippedNotInImmich,
       missingCount: missing.length,
       missingSize: totalMissingSize,
       files: missing,
     };
 
-    log.info('Scan complete', { totalAzure, totalLocal, missing: missing.length, missingSize: totalMissingSize });
+    log.info('Scan complete', {
+      prefixes, totalAzure, totalLocal, missing: missing.length,
+      missingSize: totalMissingSize, skippedNotInImmich,
+      immichCrossRef: !!immichPaths,
+    });
     bus.emit('restore:scan-done', { missingCount: missing.length, missingSize: totalMissingSize });
     return scanResult;
   } finally {
@@ -80,10 +123,8 @@ async function downloadBlob(blobName) {
   const blobClient = container.getBlockBlobClient(blobName);
   const localPath = join(config.sync.basePath, blobName);
 
-  // Create directory structure
   await mkdir(dirname(localPath), { recursive: true });
 
-  // Download to file
   const downloadResponse = await blobClient.download(0);
   return new Promise((resolve, reject) => {
     const ws = createWriteStream(localPath);
@@ -134,7 +175,6 @@ export async function restoreAll() {
   bus.emit('restore:done', getRestoreProgress());
   log.info('Restore complete', restoreProgress);
 
-  // Clear scan results — files now exist locally
   scanResult = null;
   return getRestoreProgress();
 }
@@ -142,7 +182,6 @@ export async function restoreAll() {
 export async function restoreOne(blobName) {
   try {
     await downloadBlob(blobName);
-    // Remove from scan results
     if (scanResult) {
       scanResult.files = scanResult.files.filter(f => f.blobName !== blobName);
       scanResult.missingCount = scanResult.files.length;
