@@ -32,10 +32,13 @@ export async function scanMissing() {
       log.info('Scanning Azure prefix for missing files', { prefix: dir });
 
       for await (const blob of container.listBlobsFlat({ prefix: `${dir}/` })) {
+        // Skip immich/ prefix — known blobfuse artifact duplicates
+        if (blob.name.startsWith('immich/')) continue;
+
         totalAzure++;
         const localPath = join(config.sync.basePath, blob.name);
 
-        // Skip junk
+        // Skip junk files
         const name = blob.name.split('/').pop();
         if (name.startsWith('.fuse_hidden') || name.startsWith('.azDownload-') || name === '.DS_Store' || name === '.immich' || name.endsWith('.tmp')) {
           continue;

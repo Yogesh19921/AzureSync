@@ -50,6 +50,9 @@ async function listAzureBlobs(prefix) {
   log.info('Listing Azure blobs', { prefix });
 
   for await (const blob of container.listBlobsFlat({ prefix })) {
+    // Skip immich/ prefix — blobfuse artifact duplicates
+    if (blob.name.startsWith('immich/')) continue;
+
     blobs.set(blob.name, {
       name: blob.name,
       size: blob.properties.contentLength,
