@@ -1,9 +1,10 @@
 import { join, dirname } from 'path';
-import { existsSync, createWriteStream } from 'fs';
+import { existsSync, createWriteStream, statSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { execSync } from 'child_process';
 import { config } from './config.js';
 import { getContainerClient } from './uploader.js';
+import { markUploadedBulk } from './db.js';
 import { bus } from './events.js';
 import { log } from './logger.js';
 
@@ -126,12 +127,21 @@ async function downloadBlob(blobName) {
   await mkdir(dirname(localPath), { recursive: true });
 
   const downloadResponse = await blobClient.download(0);
-  return new Promise((resolve, reject) => {
+  await new Promise((resolve, reject) => {
     const ws = createWriteStream(localPath);
     downloadResponse.readableStreamBody.pipe(ws);
     ws.on('finish', resolve);
     ws.on('error', reject);
   });
+
+  // Mark as "uploaded" in DB so watcher doesn't re-upload to Azure
+  const st = statSync(localPath);
+  markUploadedBulk([{
+    relPath: blobName,
+    size: st.size,
+    mtimeMs: Math.floor(st.mtimeMs),
+    blobName,
+  }]);
 }
 
 export async function restoreAll() {
