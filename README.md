@@ -8,6 +8,17 @@ Immich is great for self-hosted photo management, but your photos live on a sing
 
 AzureSync watches your Immich directory at the kernel level — no scanning, no polling. New file appears, it gets uploaded. That's it.
 
+## Screenshots
+
+**Dashboard overview** — sync progress, stats, storage breakdown, cost estimate, upload timeline
+![Dashboard Overview](Screenshots/dashboard-overview.png)
+
+**Files and events** — live upload events, activity log, searchable file list
+![Files and Events](Screenshots/files-and-events.png)
+
+**Restore and config** — restore from Azure, system health, configuration editor
+![Restore and Config](Screenshots/restore-and-config.png)
+
 ## Features
 
 - **inotify file watching** — zero CPU when idle, instant detection of new files
