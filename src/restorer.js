@@ -119,7 +119,6 @@ export async function scanMissing(options = {}) {
   }
 }
 
-// Returns file info for DB batching
 async function downloadBlob(blobName) {
   const container = getContainerClient();
   const blobClient = container.getBlockBlobClient(blobName);
@@ -135,8 +134,10 @@ async function downloadBlob(blobName) {
     ws.on('error', reject);
   });
 
+  // Mark as uploaded in DB IMMEDIATELY so watcher doesn't re-upload.
+  // Must happen before watcher's debounce timer fires (2s).
   const st = statSync(localPath);
-  return { relPath: blobName, size: st.size, mtimeMs: Math.floor(st.mtimeMs), blobName };
+  markUploadedBulk([{ relPath: blobName, size: st.size, mtimeMs: Math.floor(st.mtimeMs), blobName }]);
 }
 
 export async function restoreAll() {
@@ -150,13 +151,6 @@ export async function restoreAll() {
 
   const concurrency = config.sync.restoreConcurrency || 8;
   let index = 0;
-  const dbBatch = [];
-  const DB_BATCH_SIZE = 50;
-
-  function flushDbBatch() {
-    if (dbBatch.length === 0) return;
-    markUploadedBulk(dbBatch.splice(0));
-  }
 
   async function worker() {
     while (index < files.length) {
@@ -167,9 +161,7 @@ export async function restoreAll() {
       bus.emit('restore:progress', getRestoreProgress());
 
       try {
-        const record = await downloadBlob(file.blobName);
-        dbBatch.push(record);
-        if (dbBatch.length >= DB_BATCH_SIZE) flushDbBatch();
+        await downloadBlob(file.blobName);
         restoreProgress.done++;
         log.info('Restored', { blob: file.blobName });
       } catch (err) {
@@ -185,9 +177,6 @@ export async function restoreAll() {
   const workers = Array.from({ length: concurrency }, () => worker());
   await Promise.all(workers);
 
-  // Flush remaining DB batch
-  flushDbBatch();
-
   restoring = false;
   bus.emit('restore:done', getRestoreProgress());
   log.info('Restore complete', restoreProgress);
@@ -198,8 +187,7 @@ export async function restoreAll() {
 
 export async function restoreOne(blobName) {
   try {
-    const record = await downloadBlob(blobName);
-    markUploadedBulk([record]);
+    await downloadBlob(blobName);
     if (scanResult) {
       scanResult.files = scanResult.files.filter(f => f.blobName !== blobName);
       scanResult.missingCount = scanResult.files.length;
