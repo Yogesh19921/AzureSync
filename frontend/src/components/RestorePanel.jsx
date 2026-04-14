@@ -19,6 +19,9 @@ export default function RestorePanel({ onToast, wsEvents }) {
   const fetchStatus = () => fetch('/api/restore/status').then(r => r.json()).then(setStatus).catch(() => {});
   const fetchFiles = (p = 0) => fetch(`/api/restore/files?limit=50&offset=${p * 50}`).then(r => r.json()).then(setFiles).catch(() => {});
 
+  // Fetch on mount — shows progress even after refresh
+  useEffect(() => { fetchStatus(); }, []);
+
   useEffect(() => {
     if (!wsEvents || !wsEvents[0]) return;
     const last = wsEvents[0];

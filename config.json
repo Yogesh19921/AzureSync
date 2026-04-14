@@ -24,7 +24,8 @@
       "immich/**"
     ],
     "debounceMs": 2000,
-    "concurrency": 3
+    "concurrency": 3,
+    "restoreConcurrency": 8
   },
   "discord": {
     "webhookUrl": "https://discord.com/api/webhooks/1476042293625622763/kecEctjXh5jI39mrmL5T0DPT-tsXHoOi9s4EWIewbz0e2z1S17mKB4B0OPjG8SKUbqOo",

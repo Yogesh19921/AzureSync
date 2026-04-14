@@ -39,6 +39,13 @@ export function initDb() {
     CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_log(created_at);
   `);
 
+  // Migration: add retries column if missing
+  const cols = db.prepare("PRAGMA table_info(files)").all().map(c => c.name);
+  if (!cols.includes('retries')) {
+    db.exec(`ALTER TABLE files ADD COLUMN retries INTEGER NOT NULL DEFAULT 0`);
+    log.info('Migrated: added retries column');
+  }
+
   log.info('SQLite initialized', { path: config.db.path });
   return db;
 }
@@ -69,13 +76,17 @@ function prepare() {
   `);
 
   stmts.markFailed = db.prepare(`
-    UPDATE files SET status = 'failed', error = @error WHERE rel_path = @relPath
+    UPDATE files SET status = 'failed', error = @error, retries = retries + 1 WHERE rel_path = @relPath
+  `);
+
+  stmts.markPermFailed = db.prepare(`
+    UPDATE files SET status = 'perm_failed', error = @error WHERE rel_path = @relPath
   `);
 
   stmts.getByPath = db.prepare(`SELECT * FROM files WHERE rel_path = @relPath`);
 
   stmts.getPending = db.prepare(`
-    SELECT * FROM files WHERE status IN ('pending', 'failed') ORDER BY created_at LIMIT @limit
+    SELECT * FROM files WHERE status IN ('pending', 'failed') AND retries < @maxRetries ORDER BY created_at LIMIT @limit
   `);
 
   stmts.getStats = db.prepare(`
@@ -116,11 +127,11 @@ function prepare() {
   `);
 
   stmts.retryFailed = db.prepare(`
-    UPDATE files SET status = 'pending', error = NULL WHERE status = 'failed'
+    UPDATE files SET status = 'pending', error = NULL, retries = 0 WHERE status IN ('failed', 'perm_failed')
   `);
 
   stmts.retryOne = db.prepare(`
-    UPDATE files SET status = 'pending', error = NULL WHERE rel_path = @relPath AND status = 'failed'
+    UPDATE files SET status = 'pending', error = NULL, retries = 0 WHERE rel_path = @relPath AND status IN ('failed', 'perm_failed')
   `);
 
   stmts.getStorageBreakdown = db.prepare(`
@@ -228,8 +239,12 @@ export function getByPath(relPath) {
   return stmts.getByPath.get({ relPath });
 }
 
-export function getPending(limit = 100) {
-  return stmts.getPending.all({ limit });
+export function getPending(limit = 100, maxRetries = 3) {
+  return stmts.getPending.all({ limit, maxRetries });
+}
+
+export function markPermFailed(relPath, error) {
+  return stmts.markPermFailed.run({ relPath, error: String(error) });
 }
 
 export function getStats() {

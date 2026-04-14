@@ -3,7 +3,7 @@ import { createReadStream } from 'fs';
 import { stat } from 'fs/promises';
 import { join } from 'path';
 import { config } from './config.js';
-import { getPending, markUploading, markUploaded, markFailed, logActivity } from './db.js';
+import { getPending, markUploading, markUploaded, markFailed, markPermFailed, logActivity } from './db.js';
 import { bus } from './events.js';
 import { log } from './logger.js';
 
@@ -84,11 +84,20 @@ async function uploadFile(file) {
     log.info('Uploaded', { relPath: file.rel_path, size: st.size, duration });
   } catch (err) {
     const duration = Date.now() - start;
-    markFailed(file.rel_path, err.message);
-    logActivity('error', `Failed to upload ${file.rel_path}: ${err.message}`, file.rel_path);
-    bus.emit('file:failed', { relPath: file.rel_path, error: err.message });
+    const isEnoent = err.code === 'ENOENT' || err.message.includes('ENOENT');
+
+    if (isEnoent) {
+      // File doesn't exist locally — mark permanently failed, don't retry
+      markPermFailed(file.rel_path, 'File not found on disk');
+      logActivity('error', `File not found, skipping: ${file.rel_path}`, file.rel_path);
+      log.warn('File not found, marked perm_failed', { relPath: file.rel_path });
+    } else {
+      markFailed(file.rel_path, err.message);
+      logActivity('error', `Failed to upload ${file.rel_path}: ${err.message}`, file.rel_path);
+      log.error('Upload failed', { relPath: file.rel_path, error: err.message, duration, retries: file.retries });
+    }
+    bus.emit('file:failed', { relPath: file.rel_path, error: err.message, permanent: isEnoent });
     bus.emit('stats:update');
-    log.error('Upload failed', { relPath: file.rel_path, error: err.message, duration });
   }
 }
 
